@@ -1,9 +1,13 @@
+// ignore_for_file: avoid_print, use_rethrow_when_possible
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:goodgame/details.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:goodgame/game.dart';
 
 void main() async {
   await dotenv.load();
@@ -48,16 +52,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// //top level function for the root page
-// Future<List<DocumentSnapshot>> fetchGamesByCategory(String category) async {
-//   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-//   return await firestore
-//       .collection('games-collection')
-//       .where('genre', isEqualTo: category)
-//       .get()
-//       .then((querySnapshot) => querySnapshot.docs);
-// }
-
 class RootPage extends StatefulWidget {
   const RootPage({Key? key}) : super(key: key);
 
@@ -86,12 +80,30 @@ class _RootPageState extends State<RootPage> {
   }
 
   // For instance, when you use it in a function:
-  Future<List<DocumentSnapshot>> fetchGamesByCategory(String category) async {
-    return await firestore
-        .collection('games-collection')
-        .where('genre', isEqualTo: category)
-        .get()
-        .then((querySnapshot) => querySnapshot.docs);
+  Future<Map<String, dynamic>> fetchGameDetails(String gameName) async {
+    try {
+      final String? apiKey = dotenv.env['RAWG_API_KEY'];
+      if (apiKey == null) {
+        throw Exception('API key not found');
+      }
+
+      final url = 'https://api.rawg.io/api/games?key=$apiKey&search=$gameName';
+      final response = await http.get(Uri.parse(url));
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load game details from API');
+      }
+
+      if (data['results'] == null || data['results'].isEmpty) {
+        throw Exception('No game found with this name');
+      }
+
+      return data['results'][0];
+    } catch (e) {
+      print('Error fetching game details: $e');
+      throw e;
+    }
   }
 
   int currentPage = 0;
@@ -111,7 +123,7 @@ class _RootPageState extends State<RootPage> {
                 showSearch(
                     context: context,
                     delegate: GameSearch(gamesList!, recentGames!,
-                        fetchGamesByCategory, fetchGamesByCategory, this));
+                        fetchGameDetails, fetchGameSuggestions));
               },
               icon: const Icon(Icons.search))
         ],
@@ -172,39 +184,53 @@ class SearchPage extends StatelessWidget {
 class GameSearch extends SearchDelegate<String> {
   final List<String> gamesList;
   final List<String> recentGames;
-  final Function(String) fetchGamesByCategory;
-  final Future<List<DocumentSnapshot>> Function(String) fetchGames;
-  // ignore: library_private_types_in_public_api
-  final _RootPageState rootPageState;
-  // ignore: library_private_types_in_public_api
+  final Future<Map<String, dynamic>> Function(String) fetchGameDetails;
+  final Future<List<String>> Function(String) fetchGameSuggestions;
+
   GameSearch(
-      this.gamesList,
-      this.recentGames,
-      this.fetchGamesByCategory,
-      // ignore: library_private_types_in_public_api
-      this.fetchGames,
-      this.rootPageState);
+    this.gamesList,
+    this.recentGames,
+    this.fetchGameDetails,
+    this.fetchGameSuggestions,
+  );
+
+  get rootPageState => null;
 
   // Define your categories
 
   @override
+  @override
   Widget buildResults(BuildContext context) {
-    return FutureBuilder<List<DocumentSnapshot>>(
-      future: fetchGames(query),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: fetchGameDetails(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              final gameData =
-                  snapshot.data![index].data() as Map<String, dynamic>;
-              return ListTile(
-                title: Text(gameData['name'] ?? 'Unknown Game'),
-                // Add more data as required
+        } else if (snapshot.hasData && snapshot.data != null) {
+          final gameData = snapshot.data!;
+
+          return ListTile(
+            title: Text(gameData['name'] ?? 'Unknown Game'),
+            onTap: () {
+              print('Game tapped: ${gameData['name']}');
+
+              // Create an instance of Game from the data
+              Game selectedGame = Game(
+                name: gameData['name'] ??
+                    'Unknown Game', // provide a default value
+                description: gameData['description'] ??
+                    'Description not available', // handle possible null
+                imageURL:
+                    gameData['background_image'] ?? '', // handle possible null
+              );
+
+              // Navigate to the GameDetailsPage with the selected game data
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GameDetailsPage(game: selectedGame),
+                ),
               );
             },
           );
@@ -273,7 +299,7 @@ class GameSearch extends SearchDelegate<String> {
     } else {
       // Fetch game suggestions based on the query
       return FutureBuilder<List<String>>(
-        future: rootPageState.fetchGameSuggestions(query),
+        future: fetchGameSuggestions(query),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
