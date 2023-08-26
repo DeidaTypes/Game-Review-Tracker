@@ -21,7 +21,7 @@ class GameDetailsPage extends StatelessWidget {
         children: [
           Image.network(
               game.imageURL), // assuming imageURL is a property in Game class
-          Text(game.description), // and so on...
+          Text(game.description),
         ],
       ),
     );

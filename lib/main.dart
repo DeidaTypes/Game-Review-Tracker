@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, use_rethrow_when_possible
+// ignore_for_file: avoid_print, use_rethrow_when_possible, unnecessary_null_comparison
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -214,19 +214,13 @@ class GameSearch extends SearchDelegate<String> {
           return ListTile(
             title: Text(gameData['name'] ?? 'Unknown Game'),
             onTap: () {
-              print('Game tapped: ${gameData['name']}');
-
-              // Create an instance of Game from the data
               Game selectedGame = Game(
-                name: gameData['name'] ??
-                    'Unknown Game', // provide a default value
-                description: gameData['description'] ??
-                    'Description not available', // handle possible null
-                imageURL:
-                    gameData['background_image'] ?? '', // handle possible null
+                name: gameData['name'],
+                description: gameData['description_raw'] ??
+                    '', // Directly use the description from the RAWG API
+                imageURL: gameData['background_image'],
               );
 
-              // Navigate to the GameDetailsPage with the selected game data
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => GameDetailsPage(game: selectedGame),
@@ -284,9 +278,22 @@ class GameSearch extends SearchDelegate<String> {
               itemBuilder: (context, index) {
                 return ListTile(
                   title: Text(snapshot.data![index]),
-                  onTap: () {
-                    query = snapshot.data![index];
-                    showResults(context);
+                  onTap: () async {
+                    final gameDetails =
+                        await fetchGameDetails(snapshot.data![index]);
+                    if (gameDetails != null) {
+                      final game = Game(
+                        name: gameDetails['name'] ?? 'Unknown Game',
+                        description: gameDetails['description_raw'] ?? '',
+                        imageURL: gameDetails['background_image'] ?? '',
+                      );
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => GameDetailsPage(game: game),
+                        ),
+                      );
+                    }
                   },
                 );
               },
@@ -308,14 +315,27 @@ class GameSearch extends SearchDelegate<String> {
           } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
             final suggestionList = snapshot.data!;
             return ListView.builder(
-              itemBuilder: (context, index) => ListTile(
-                onTap: () {
-                  query = suggestionList[index];
-                  showResults(context);
-                },
-                title: Text(suggestionList[index]),
-              ),
               itemCount: suggestionList.length,
+              itemBuilder: (context, index) => ListTile(
+                title: Text(suggestionList[index]),
+                onTap: () async {
+                  final gameDetails =
+                      await fetchGameDetails(suggestionList[index]);
+                  if (gameDetails != null) {
+                    final game = Game(
+                      name: gameDetails['name'] ?? 'Unknown Game',
+                      description: gameDetails['description_raw'] ?? '',
+                      imageURL: gameDetails['background_image'] ?? '',
+                    );
+
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => GameDetailsPage(game: game),
+                      ),
+                    );
+                  }
+                },
+              ),
             );
           } else {
             return const Center(child: Text('No results found!'));
