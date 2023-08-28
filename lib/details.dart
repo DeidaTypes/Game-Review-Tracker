@@ -4,24 +4,33 @@ import 'package:flutter/material.dart';
 import 'package:goodgame/game.dart';
 
 class GameDetailsPage extends StatelessWidget {
-  final Game game; // This will store details of the game you want to display
+  final Game game;
 
   const GameDetailsPage({Key? key, required this.game}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    print('Game Name: ${game.name}');
-    print('Game Description: ${game.description}');
-    print('Game Image: ${game.imageURL}');
+    print("Game Description: ${game.description}");
+
     return Scaffold(
       appBar: AppBar(
         title: Text(game.name),
       ),
-      body: Column(
+      body: ListView(
         children: [
-          Image.network(
-              game.imageURL), // assuming imageURL is a property in Game class
-          Text(game.description),
+          if (game.imageURL.isNotEmpty) Image.network(game.imageURL),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              game.description,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                backgroundColor: Colors
+                    .yellow, // temporarily set a background to see the text widget's space
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -152,6 +152,7 @@ class _RootPageState extends State<RootPage> {
   }
 }
 
+//Search Page
 class SearchPage extends StatelessWidget {
   const SearchPage({Key? key}) : super(key: key);
 
@@ -181,6 +182,7 @@ class SearchPage extends StatelessWidget {
   }
 }
 
+//Game Search Class
 class GameSearch extends SearchDelegate<String> {
   final List<String> gamesList;
   final List<String> recentGames;
@@ -200,6 +202,8 @@ class GameSearch extends SearchDelegate<String> {
 
   @override
   @override
+
+  //Game details page
   Widget buildResults(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
       future: fetchGameDetails(query),
@@ -235,6 +239,7 @@ class GameSearch extends SearchDelegate<String> {
     );
   }
 
+//clear search
   @override
   List<Widget> buildActions(BuildContext context) {
     return [
@@ -288,6 +293,7 @@ class GameSearch extends SearchDelegate<String> {
                         imageURL: gameDetails['background_image'] ?? '',
                       );
 
+                      // ignore: use_build_context_synchronously
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => GameDetailsPage(game: game),
