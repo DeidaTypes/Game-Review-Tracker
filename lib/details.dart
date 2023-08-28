@@ -18,7 +18,20 @@ class GameDetailsPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          if (game.imageURL.isNotEmpty) Image.network(game.imageURL),
+          Row(
+            // Begin of the new block
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (game.imageURL.isNotEmpty)
+                Container(
+                  width: 120.0, // set a specific width for the image
+                  child: Image.network(game.imageURL),
+                ),
+              Expanded(
+                  child:
+                      _buildRatingAndStatusSection()), // we'll define this function below
+            ],
+          ), // End of the new block
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
@@ -33,6 +46,38 @@ class GameDetailsPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // This function is added outside the build method but still within the GameDetailsPage class.
+  Widget _buildRatingAndStatusSection() {
+    // The current setup assumes the gameStatus is static (always 'Want to play').
+    String gameStatus = 'Want to play';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(5, (index) {
+            return const Icon(Icons.star, color: Colors.yellow);
+          }),
+        ),
+        const SizedBox(height: 10),
+        DropdownButton<String>(
+          value: gameStatus,
+          items:
+              <String>['Want to play', 'Played', 'Playing'].map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            // As this is a StatelessWidget, we aren't handling the onChanged
+            // but if you convert this to a StatefulWidget you can manage the state.
+          },
+        ),
+      ],
     );
   }
 }
