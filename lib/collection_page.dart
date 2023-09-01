@@ -35,7 +35,7 @@ class _MyCollectionPageState extends State<MyCollectionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Collection'),
+        title: const Text('My Collection'),
       ),
       body: Column(
         children: [
@@ -44,10 +44,13 @@ class _MyCollectionPageState extends State<MyCollectionPage> {
               stream: ratingsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text('An error occurred!'));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Text('No ratings found.');
+                  return const Center(child: Text('No ratings found.'));
                 }
                 return ListView.builder(
                   itemCount: snapshot.data!.docs.length,
@@ -65,16 +68,19 @@ class _MyCollectionPageState extends State<MyCollectionPage> {
               },
             ),
           ),
-          Divider(),
+          const Divider(),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: gameStatusStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text('An error occurred!'));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Text('No game statuses found.');
+                  return const Center(child: Text('No game statuses found.'));
                 }
                 return ListView.builder(
                   itemCount: snapshot.data!.docs.length,
