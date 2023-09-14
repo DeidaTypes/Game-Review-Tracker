@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:goodgame/game.dart';
+import 'package:goodgame/profile.dart';
 
 void main() async {
   await dotenv.load();
@@ -61,57 +62,25 @@ class RootPage extends StatefulWidget {
 
 class _RootPageState extends State<RootPage> {
   FirebaseFirestore get firestore => FirebaseFirestore.instance;
-
-  get responseData => null;
-
-  Future<List<String>> fetchGameSuggestions(String query) async {
-    final url =
-        'https://api.rawg.io/api/games?key=${dotenv.env['RAWG_API_KEY']}&search=$query';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final games = (data['results'] as List)
-          .map((game) => game['name'].toString())
-          .toList();
-      return games;
-    } else {
-      throw Exception('Failed to load games from API');
-    }
-  }
-
-  // For instance, when you use it in a function:
-  Future<Map<String, dynamic>> fetchGameDetails(String gameName) async {
-    try {
-      final String? apiKey = dotenv.env['RAWG_API_KEY'];
-      if (apiKey == null) {
-        throw Exception('API key not found');
-      }
-
-      final url = 'https://api.rawg.io/api/games?key=$apiKey&search=$gameName';
-      final response = await http.get(Uri.parse(url));
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to load game details from API');
-      }
-
-      if (data['results'] == null || data['results'].isEmpty) {
-        throw Exception('No game found with this name');
-      }
-
-      return data['results'][0];
-    } catch (e) {
-      print('Error fetching game details: $e');
-      throw e;
-    }
-  }
+  PageController _pageController = PageController();
 
   int currentPage = 0;
 
-  List<String>? get gamesList =>
-      ['Read Dead Redemption 2', 'Fortnite', 'Valorant', 'NBA 2k23'];
-  List<String>? get recentGames =>
-      ['Zelda', 'Mario', 'Sonic Adventure', 'Mario Odyssey'];
+  // Note: You should replace nulls with actual implementations for game list, recent games,
+  // fetchGameDetails, and fetchGameSuggestions.
+  // For now, I'm just demonstrating where they should go in your code.
+  List<String>? get gamesList => null;
+  List<String>? get recentGames => null;
+  Future<Map<String, dynamic>> Function(String p1)? get fetchGameDetails =>
+      null;
+  Future<List<String>> Function(String p1)? get fetchGameSuggestions => null;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,9 +90,14 @@ class _RootPageState extends State<RootPage> {
           IconButton(
               onPressed: () {
                 showSearch(
-                    context: context,
-                    delegate: GameSearch(gamesList!, recentGames!,
-                        fetchGameDetails, fetchGameSuggestions));
+                  context: context,
+                  delegate: GameSearch(
+                    gamesList!,
+                    recentGames!,
+                    fetchGameDetails!,
+                    fetchGameSuggestions!,
+                  ),
+                );
               },
               icon: const Icon(Icons.search))
         ],
@@ -134,19 +108,35 @@ class _RootPageState extends State<RootPage> {
         },
         child: const Icon(Icons.add),
       ),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          Container(color: Colors.blue), // Home Page (replace with actual page)
+          const ProfilePage(), // Profile Page (replace with actual page)
+          Container(
+              color: Colors.green), // Search Page (replace with actual page)
+          Container(
+              color: Colors
+                  .yellow), // My Collection Page (replace with actual page)
+          Container(
+              color: Colors.red), // Settings Page (replace with actual page)
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
           NavigationDestination(
-              icon: Icon(Icons.collections), label: ' My Collection'),
+              icon: Icon(Icons.collections), label: 'My Collection'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
         onDestinationSelected: (int index) {
           setState(() {
             currentPage = index;
           });
+          _pageController.jumpToPage(index);
         },
         selectedIndex: currentPage,
       ),
